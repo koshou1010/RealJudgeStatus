@@ -38,7 +38,7 @@ STATUS_DATE_FLAG_MAP = {
     'reaction_stable':None,
     'recovery':None
 }
-DEBUG_MODE = False
+DEBUG_MODE = True
 def printf(content, mode):
     if DEBUG_MODE:
         if mode == 0:
@@ -71,6 +71,10 @@ class RealJudgeStatus:
         self.rjs_vol_data_list = []
         self.res_data_list = []
         self.rjs_res_data_list = []
+        self.rjs_baseline_df = pd.DataFrame()
+        self.rjs_rmdr_df = pd.DataFrame() # res max difference rate
+        self.rjs_sadr_df = pd.DataFrame(columns= MOX_SENSOR__DR_LIST) # stable average difference rate
+        self.rmdr_flag = False # res max difference rate
         self.humi_list = []
         self.temp_list = []
         self.flow_list = []
@@ -329,7 +333,7 @@ class RealJudgeStatus:
             return statistic_df
         except Exception as e: 
             print(e)
-            self.move_error_file()
+            # self.move_error_file()
             return statistic_df
         
     def rolling_calculate(self, res_data_df:pd.DataFrame) -> (pd.DataFrame):
@@ -347,13 +351,14 @@ class RealJudgeStatus:
         # difference_rate_df.to_csv('dr.csv')
         return difference_rate_df
 
-    def judgment_status(self, difference_rate_df:pd.DataFrame):
+    def judgment_status(self, difference_rate_df:pd.DataFrame, res_data_df:pd.DataFrame):
         '''
         rjs judgment status
         '''
         
         rjs_status = 4
         wait_stable_counter = 0 # use for count if not stable need to count to limit and recovery
+        counter = 0
         for index in range(difference_rate_df.shape[0]):
             printf(index,1)
             sucess_gas_in_flag_num = 0
@@ -369,15 +374,18 @@ class RealJudgeStatus:
                         self.sensor_counter_map[cols_dr]['gas_in']['flag'] = 0
                     if self.sensor_counter_map[cols_dr]['gas_in']['counter'] >= self.parameters_dict[cols_dr]['gas_in']['conti_times']:
                         self.sensor_counter_map[cols_dr]['gas_in']['flag'] = 1
-                #--- judge reaction start ---#
+                #--- judge reaction stable start ---#
                 if rjs_status == 5:
                     if abs(float(difference_rate_df[index:index+1][cols_dr])) <= self.parameters_dict[cols_dr]['reaction_stable']['threshold']:
                         self.sensor_counter_map[cols_dr]['reaction_stable']['counter']+=1
+                        # self.append_stable_value_each_sensor(index, cols_dr)
                     else:
                         self.sensor_counter_map[cols_dr]['reaction_stable']['counter'] = 0
                         self.sensor_counter_map[cols_dr]['reaction_stable']['flag'] = 0
+                        self.clean_stable_value_each_sensor(index, cols_dr)
                     if self.sensor_counter_map[cols_dr]['reaction_stable']['counter'] >= self.parameters_dict[cols_dr]['reaction_stable']['conti_times']:
                         self.sensor_counter_map[cols_dr]['reaction_stable']['flag'] = 1
+                        self.append_stable_value_each_sensor(index, cols_dr)
                 #--- judge recovery start ---#
                 if rjs_status == 6:
                     if abs(float(difference_rate_df[index:index+1][cols_dr])) >= self.parameters_dict[cols_dr]['recovery']['threshold']:
@@ -392,32 +400,96 @@ class RealJudgeStatus:
                 sucess_gas_in_flag_num += self.sensor_counter_map[cols_dr]['gas_in']['flag']
                 sucess_reaction_stable_flag_num += self.sensor_counter_map[cols_dr]['reaction_stable']['flag']
                 sucess_recovery_flag_num += self.sensor_counter_map[cols_dr]['recovery']['flag']
-                printf(self.sensor_counter_map[cols_dr]['gas_in']['flag'],1)
+                printf(self.sensor_counter_map[cols_dr]['reaction_stable']['flag'],1)
             printf('',0)
             
             if rjs_status == 4:
+                self.append_baseline_res_value(index, res_data_df)
                 if sucess_gas_in_flag_num >= self.parameters_dict['judgment_sensor_num']:
                     # print(index, 'gas in here')
                     self.status_date_flag_map['rjs']['gas_in'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")
                     rjs_status = 5
+                    printf('gas in',0)
 
-                
             elif rjs_status == 5:
+                self.reaction_max_difference_rate(index, res_data_df)
                 wait_stable_counter +=1
                 if sucess_reaction_stable_flag_num >= self.parameters_dict['judgment_sensor_num']:
                     # print(index, 'reaction stable here')
                     self.status_date_flag_map['rjs']['reaction_stable'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")
                     rjs_status = 6
+                    printf('reaction stable',0)
                 elif wait_stable_counter == self.parameters_dict['wait_stable_limit']:   
                     self.status_date_flag_map['rjs']['recovery'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")
                     rjs_status = 7
+                    printf('recovery',0)
                 
             elif sucess_recovery_flag_num >= self.parameters_dict['judgment_sensor_num'] and rjs_status == 6:
                 # print(index, 'recovery here')
                 self.status_date_flag_map['rjs']['recovery'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")
+                
+                self.rjs_sadr_df = self.rjs_sadr_df.fillna(0)
+                for cols_dr in MOX_SENSOR__DR_LIST:
+                    print(self.rjs_sadr_df[cols_dr].sum())
+                
                 rjs_status = 7
+            counter += 1
+            self.feature_extraction(index, rjs_status, res_data_df)
+        
+    def append_stable_value_each_sensor(self, index:int, cols_dr:str):
+        '''
+        append res of each sensor judge at stable status
+        '''
+        self.rjs_sadr_df.at[index, cols_dr] =  1
+
+    def clean_stable_value_each_sensor(self, index:int, cols_dr:str):
+        '''
+        if not stable, clean
+        '''
+        
+        self.rjs_sadr_df.at[index, cols_dr] =  0
+        
+        
+    def append_baseline_res_value(self, index:int, res_data_df:pd.DataFrame):
+        '''
+        append all value at status 4(baseline stable)
+        '''
+        
+        self.rjs_baseline_df = self.rjs_baseline_df.append(res_data_df[index:index+1])
+        
+    def baseline_avg(self) -> (pd.DataFrame):
+        '''
+        return average of front 60s value
+        '''
+        
+        if len(self.rjs_baseline_df) >= 60:
+            return self.rjs_baseline_df.mean().to_frame().T
+
+    def reaction_max_difference_rate(self, index:int, res_data_df:pd.DataFrame):
+        '''
+        reaction max difference rate from gasin start, (Rt2-Rt1)/Rt1
+        '''
+        
+        if not self.rmdr_flag:
+            for sensor in MOX_SENSOR_LIST:
+                self.rjs_rmdr_df.at[0, sensor] = (res_data_df.at[index,sensor] - self.baseline_avg_df.at[0, sensor])/self.baseline_avg_df.at[0, sensor]
+            self.rmdr_flag = True
+        else:
+            for sensor in MOX_SENSOR_LIST:
+                if (abs((res_data_df.at[index,sensor] - self.baseline_avg_df.at[0, sensor])/self.baseline_avg_df.at[0, sensor]) > abs(self.rjs_rmdr_df.at[0, sensor])):
+                    self.rjs_rmdr_df.at[0, sensor] = (res_data_df.at[index,sensor] - self.baseline_avg_df.at[0, sensor])/self.baseline_avg_df.at[0, sensor]
 
 
+    def feature_extraction(self, index:int, rjs_status:int, res_data_df:pd.DataFrame):
+        if rjs_status == 4:
+            self.baseline_avg_df = self.baseline_avg()
+        elif rjs_status == 5:
+            pass
+            
+            
+
+        
+        
     def save_threshold_csv(self, difference_rate_df:pd.DataFrame):
         '''
         save threshold of each time to csv
@@ -441,7 +513,7 @@ class RealJudgeStatus:
         res = self.rolling_calculate(res_data_df)
         difference_rate_df = pd.concat([rjs_time_df, res], axis = 1) # difference_rate_df have time
         self.save_threshold_csv(difference_rate_df)
-        self.judgment_status(difference_rate_df)
+        self.judgment_status(difference_rate_df, res_data_df)
 
 
     def statistic_total(self, statistic_df:pd.DataFrame):
@@ -465,8 +537,8 @@ def copy_all_folder_path(input_folder:str):
     copy all folder path input to output
     '''
     for path in OUTPUT_PATH_LIST:
-        if not os.path.exists(path):
-            for root, dirs, files in os.walk(input_folder):
+        for root, dirs, files in os.walk(input_folder):
+             if not os.path.exists(root.replace(input_folder,path)):
                 os.mkdir(root.replace(input_folder,path))
 
  

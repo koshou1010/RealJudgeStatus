@@ -17,7 +17,7 @@ if __name__ == '__main__':
                 statistic_df = rjs.dataload(os.path.join(root, file), statistic_df)
     # statistic_df.to_excel(final_excel_name, index = False)
     # statistic_df = pd.read_excel(final_excel_name)
-    final_df = utils.calculate_statistic_result(statistic_df, utils.load_parameters())
-    final_df.to_excel(final_excel_name, index = False)
-    utils.reset_col_length(final_excel_name)
+    # final_df = utils.calculate_statistic_result(statistic_df, utils.load_parameters())
+    # final_df.to_excel(final_excel_name, index = False)
+    # utils.reset_col_length(final_excel_name)
 
