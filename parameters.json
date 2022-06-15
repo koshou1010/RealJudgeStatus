@@ -1,6 +1,8 @@
 {
     "judgment_sensor_num": 7, 
     "wait_stable_limit":150,
+    "each_sensor_statble_conti_times" : 10,
+    "not_stable_before_recovery_num" : 10,
     "statistic_threshold":{"gas_in":5, "recovery":5},
     "TGS_2600_dr": {"gas_in":{"threshold":0.01, "conti_times":5},"reaction_stable":{"threshold":0.001, "conti_times":5}, "recovery":{"threshold":0.001, "conti_times":5}},
     "TGS_2602_dr": {"gas_in":{"threshold":0.001, "conti_times":5},"reaction_stable":{"threshold":0.001, "conti_times":5}, "recovery":{"threshold":0.003, "conti_times":5}},
