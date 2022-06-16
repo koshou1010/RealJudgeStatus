@@ -5,6 +5,8 @@
 1. Setting data path in main.py, const called INPUT_FOLDER.
 2. Put the ndjson file in INPUT_FOLDER. 
 3. Open terminal and cd to current path, enter : python main.py
+4. feature.doc are all features and explain
+
 
 ## Output Explain
 
@@ -14,7 +16,8 @@
 4. In the ERROR_FOLDER, was error file, would not add in statustic to calculate result.
 5. statistic.xlsx is all of rjs sucess judge file, and can check each flag's time, so if there are something exception at dataload function will not store in statistic.xlsx.
 6. In statistic.xlsx, each two rows are same file, the first one is ESRTSD control, the second one is tools judge.
-
+7. In the log folder, there are all program execution record, including exception handle
+8. There are all feature in features.csv, the short name was in feature.doc
 
 
 
