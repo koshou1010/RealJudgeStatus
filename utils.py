@@ -8,7 +8,7 @@
 #
 #                   @Start Date   : 2022/5/26
 #
-#                   @Last Update  : 2022/6/14
+#                   @Last Update  : 2022/6/16
 #
 #-------------------------------------------------------------------
 '''
@@ -63,8 +63,9 @@ class RealJudgeStatus:
     'FIS_3B00_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
     'FIS_6100_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}}
     }
-    def __init__(self, parameters_dict):
+    def __init__(self, parameters_dict, logger):
         self.parameters_dict = parameters_dict
+        self.logger = logger
         self.time_list = []
         self.rjs_time_list = []
         self.vol_data_list = []
@@ -343,6 +344,7 @@ class RealJudgeStatus:
         try:
             with open(filename, 'r', encoding="utf-8") as f:
                 print(filename)
+                self.logger.logging(filename)
                 all_data = ndjson.load(f)            
                 self.check_modified(all_data)
             self.res_data_list = self.transfer_to_resistance(self.vol_data_list)
@@ -352,7 +354,8 @@ class RealJudgeStatus:
             return statistic_df, features_df
         except Exception as e: 
             print(e)
-            # self.move_error_file()
+            self.logger.logging(str(e))
+            self.move_error_file()
             return statistic_df, features_df
         
     def rolling_calculate(self, res_data_df:pd.DataFrame) -> (pd.DataFrame):
@@ -488,17 +491,16 @@ class RealJudgeStatus:
         
     def baseline_avg(self) -> (pd.DataFrame):
         '''
-        return average of front 60s value
+        return average of value
         '''
         
-        if len(self.rjs_baseline_df) >= 60:
-            return self.rjs_baseline_df.mean().to_frame().T
+        return self.rjs_baseline_df.mean().to_frame().T
 
     def resistance_max_difference_rate(self, index:int, res_data_df:pd.DataFrame):
         '''
         reaction max difference rate from gasin start, (Rt1-Rbaseline)/Rbaseline
         '''
-        
+
         if not self.rmdr_flag:
             for sensor in MOX_SENSOR_LIST:
                 self.rjs_rmdr_df.at[0, sensor] = (res_data_df.at[index,sensor] - self.baseline_avg_df.at[0, sensor])/self.baseline_avg_df.at[0, sensor]
@@ -701,10 +703,16 @@ def copy_all_folder_path(input_folder:str):
     '''
     copy all folder path input to output
     '''
+    
     for path in OUTPUT_PATH_LIST:
         for root, dirs, files in os.walk(input_folder):
-             if not os.path.exists(root.replace(input_folder,path)):
-                os.mkdir(root.replace(input_folder,path))
+            path_elements = root.split('\\')
+            copy_root = root.split('\\')[0].replace(input_folder,path)
+            for i in range(1,len(path_elements)):
+                copy_root = os.path.join(copy_root, path_elements[i])
+            if not os.path.exists(copy_root):
+                os.mkdir(copy_root)
+                
 
  
 
@@ -778,8 +786,42 @@ def calculate_statistic_result(statistic_df:pd.DataFrame, parameters) -> (pd.Dat
 
 
 
+class Logger:
+    
+    def __init__(self, log_filename):
+        self.log_path = 'log'
+        self.log_filename = log_filename
+        self.log_full_path = self.log_path +'\\'+ self.log_filename
+        self.make_log_folder()
+        
+    
+    def make_log_folder(self):            
+        if not os.path.exists(os.path.join(os.getcwd(), self.log_path)):
+            os.mkdir(os.path.join(os.getcwd(), self.log_path))
 
-
+    
+    def make_log_file(self):
+        now = datetime.datetime.now()
+        current_time = now.strftime("%H-%M-%S")
+        with open(self.log_full_path , 'a') as f:
+            f.write(current_time)
+            f.write('log_start\n')
+    
+    
+    
+    def logging(self, message : str):
+        '''
+        log dump and open file write message in 
+        '''
+        
+        now = datetime.datetime.now()
+        current_time = now.strftime("%H-%M-%S")
+        with open(self.log_full_path , 'a') as f:
+            f.write(current_time)
+            f.write(message)
+            f.write('\n')
+    
+        pass
                 
 
 

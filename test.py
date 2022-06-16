@@ -2,7 +2,7 @@ import os
 import utils
 import json
 import pandas as pd
-
+import datetime
 
 
 def load_parameters() -> (dict):
@@ -11,10 +11,15 @@ def load_parameters() -> (dict):
     return data
 
 if __name__ == '__main__':
-    file = 'data\\task__SXT273W5NHA__2022-04-20T17-18-01.788.ndjson'
+    file = r'data\food industrial\apple juice\0513\task__FT4JC60J__2022-05-13T09-37-46.867.ndjson'
     statistic_df = pd.DataFrame(columns= ['file', 'gas_in', 'reaction_stable', 'recovery'])
-    rjs = utils.RealJudgeStatus(utils.load_parameters())
-    statistic_df = rjs.dataload(file, statistic_df)
+    features_df = pd.DataFrame()
+    now = datetime.datetime.now()
+    current_time = now.strftime("%Y-%m-%d-%H-%M-%S")
+    log_filename = current_time+'__log.txt'
+    rjs = utils.RealJudgeStatus(utils.load_parameters(), utils.Logger(log_filename))
+    statistic_df, features_df = rjs.dataload(file, statistic_df, features_df)
+    
 
 
     
