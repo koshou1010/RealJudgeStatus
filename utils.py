@@ -354,6 +354,7 @@ class RealJudgeStatus:
             return statistic_df, features_df
         except Exception as e: 
             print(e)
+            self.logger.logging('Exception')
             self.logger.logging(str(e))
             self.move_error_file()
             return statistic_df, features_df
