@@ -456,13 +456,20 @@ class RealJudgeStatus:
                     rjs_status = 7
                     self.recovery = index
                 
-            elif sucess_recovery_flag_num >= self.parameters_dict['judgment_sensor_num'] and rjs_status == 6:
-                # print(index, 'recovery here')
-                printf('2recovery',0)
-                self.status_date_flag_map['rjs']['recovery'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")        
-                rjs_status = 7
-                self.recovery = index
-                
+            elif rjs_status == 6:
+                wait_stable_counter += 1
+                if sucess_recovery_flag_num >= self.parameters_dict['judgment_sensor_num']:
+                    # print(index, 'recovery here')
+                    printf('2recovery',0)
+                    self.status_date_flag_map['rjs']['recovery'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")        
+                    rjs_status = 7
+                    self.recovery = index
+                elif wait_stable_counter == self.parameters_dict['wait_stable_limit']:   
+                    self.status_date_flag_map['rjs']['recovery'] = datetime.datetime.strptime(str(difference_rate_df[index:index+1]['time'].values).split('.')[0].replace('[\'', ''), "%Y-%m-%dT%H:%M:%S")
+                    printf('1recovery',0)
+                    rjs_status = 7
+                    self.recovery = index
+            # print(rjs_status, wait_stable_counter)       
             features_df = self.feature_extraction(index, rjs_status, res_data_df, wait_stable_counter, features_df)
         return features_df
         
@@ -652,7 +659,7 @@ class RealJudgeStatus:
                     total_df.insert(0, 'file', self.filename)
                     total_df.insert(1, 'label', self.label)
                     features_df = features_df.append(total_df)
-                    self.append_flag = True    
+                    self.append_flag = True   
                     return features_df
         return features_df
 
@@ -669,6 +676,16 @@ class RealJudgeStatus:
             output_path = os.path.join(output_path, i)
         difference_rate_df.to_csv(os.path.join(output_path.replace('ndjson', '.csv')))
     
+    def create_esrtsd_timeflag(self, rjs_time_df:pd.DataFrame) -> pd.DataFrame:
+        rjs_time_df.insert(0, 'esrtsd_control_status', np.NaN)
+        rjs_time_df['esrtsd_control_status'] = rjs_time_df['esrtsd_control_status'].astype(str)
+        for index in range(len(rjs_time_df)):
+            for i in self.status_date_flag_map['esrtsd'].keys():
+                if self.status_date_flag_map['esrtsd'][i] == rjs_time_df.at[index, 'time']:
+                    # print(self.status_date_flag_map['esrtsd'][i])
+                    rjs_time_df.at[index,'esrtsd_control_status'] = i
+        return rjs_time_df
+    
     
     def rjs_entrance(self, features_df:pd.DataFrame) -> (pd.DataFrame):
         '''
@@ -677,6 +694,8 @@ class RealJudgeStatus:
         self.rjs_res_data_list = self.transfer_to_resistance(self.rjs_vol_data_list)
         res_data_df = pd.DataFrame(self.rjs_res_data_list, columns= MOX_SENSOR_LIST) #res_data_df no time
         rjs_time_df = pd.DataFrame(self.rjs_time_list, columns=['time'])
+        rjs_time_df =  self.create_esrtsd_timeflag(rjs_time_df)
+        # print(rjs_time_df)
         res = self.rolling_calculate(res_data_df)
         difference_rate_df = pd.concat([rjs_time_df, res], axis = 1) # difference_rate_df have time
         self.save_threshold_csv(difference_rate_df)
