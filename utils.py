@@ -47,23 +47,23 @@ def printf(content, mode):
             print(content, '', end='')
     
 class RealJudgeStatus:
-    sensor_counter_map = {
-    'TGS_2600_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'TGS_2602_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'TGS_2603_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'TGS_2610_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'TGS_2611_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'TGS_2620_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'TGS_2612_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_5100_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_5300_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_Q106_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_3004_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_Q201_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_3B00_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
-    'FIS_6100_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}}
-    }
     def __init__(self, parameters_dict, logger):
+        self.sensor_counter_map = {
+        'TGS_2600_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'TGS_2602_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'TGS_2603_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'TGS_2610_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'TGS_2611_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'TGS_2620_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'TGS_2612_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_5100_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_5300_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_Q106_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_3004_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_Q201_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_3B00_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}},
+        'FIS_6100_dr':{'gas_in':{'counter':0, 'flag' : 0}, 'reaction_stable':{'counter':0, 'flag' : 0}, 'recovery':{'counter':0, 'flag' : 0}}
+        }
         self.parameters_dict = parameters_dict
         self.logger = logger
         self.time_list = []
@@ -328,16 +328,16 @@ class RealJudgeStatus:
         self.rjs_entrance()
         self.plot()
         
-    def move_error_file(self):
+    def copy_error_file(self):
         '''
-        move error file
+        copy error file
         '''
         
         tmplist = self.filename.split('\\')[1:]
         output_path = ERROR_FOLDER
         for i in tmplist:
             output_path = os.path.join(output_path, i)
-        shutil.move(self.filename, os.path.join(output_path))
+        shutil.copyfile(self.filename, os.path.join(output_path))
 
     def dataload(self,filename:str, statistic_df:pd.DataFrame, features_df:pd.DataFrame) -> (pd.DataFrame):
         self.filename = filename
@@ -356,7 +356,7 @@ class RealJudgeStatus:
             print(e)
             self.logger.logging('Exception')
             self.logger.logging(str(e))
-            self.move_error_file()
+            self.copy_error_file()
             return statistic_df, features_df
         
     def rolling_calculate(self, res_data_df:pd.DataFrame) -> (pd.DataFrame):
@@ -396,6 +396,7 @@ class RealJudgeStatus:
                         self.sensor_counter_map[cols_dr]['gas_in']['flag'] = 0
                     if self.sensor_counter_map[cols_dr]['gas_in']['counter'] >= self.parameters_dict[cols_dr]['gas_in']['conti_times']:
                         self.sensor_counter_map[cols_dr]['gas_in']['flag'] = 1
+                        printf(self.sensor_counter_map[cols_dr]['gas_in']['counter'],0)
                 #--- judge reaction stable start ---#
                 if rjs_status == 5:
                     if abs(float(difference_rate_df[index:index+1][cols_dr])) <= self.parameters_dict[cols_dr]['reaction_stable']['threshold']:
@@ -431,10 +432,11 @@ class RealJudgeStatus:
                 sucess_gas_in_flag_num += self.sensor_counter_map[cols_dr]['gas_in']['flag']
                 sucess_reaction_stable_flag_num += self.sensor_counter_map[cols_dr]['reaction_stable']['flag']
                 sucess_recovery_flag_num += self.sensor_counter_map[cols_dr]['recovery']['flag']
-                printf(self.sensor_counter_map[cols_dr]['reaction_stable']['flag'],1)
+                # printf(self.sensor_counter_map[cols_dr]['reaction_stable']['flag'],1)
             printf('',0)
             
             if rjs_status == 4:
+                printf(sucess_gas_in_flag_num,1)
                 self.append_baseline_res_value(index, res_data_df)
                 if sucess_gas_in_flag_num >= self.parameters_dict['judgment_sensor_num']:
                     # print(index, 'gas in here')
@@ -501,7 +503,6 @@ class RealJudgeStatus:
         '''
         return average of value
         '''
-        
         return self.rjs_baseline_df.mean().to_frame().T
 
     def resistance_max_difference_rate(self, index:int, res_data_df:pd.DataFrame):
@@ -789,10 +790,13 @@ def calculate_statistic_result(statistic_df:pd.DataFrame, parameters) -> (pd.Dat
     for index, i in enumerate(range(0, len(statistic_df), 2)):
         gas_in_difference = unixt_df.at[i+1,'gas_in_unixt'] - unixt_df.at[i,'gas_in_unixt']
         recovery_difference = unixt_df.at[i+1,'recovery_unixt'] - unixt_df.at[i,'recovery_unixt']
-        if gas_in_difference <= parameters['statistic_threshold']['gas_in']:
-            gas_in_counter += 1
-        if recovery_difference <= parameters['statistic_threshold']['recovery']:
-            recovery_counter += 1
+        if gas_in_difference is pd.NaT or recovery_difference is pd.NaT:
+            pass
+        else:
+            if abs(gas_in_difference) <= parameters['statistic_threshold']['gas_in']:
+                gas_in_counter += 1
+            if abs(recovery_difference) <= parameters['statistic_threshold']['recovery']:
+                recovery_counter += 1
     total_num = len(statistic_df)/2
     statistic_df.at[0,'total_num'] = total_num
     statistic_df.at[0,'gas_in_sucess'] = gas_in_counter
