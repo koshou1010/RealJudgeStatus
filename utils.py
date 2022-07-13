@@ -17,6 +17,7 @@
 
 import os, openpyxl, time, json, ndjson, datetime, shutil, sys
 import numpy as np
+from openpyxl.utils.dataframe import dataframe_to_rows
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import pandas as pd
@@ -67,6 +68,7 @@ class RealJudgeStatus:
         self.parameters_dict = parameters_dict
         self.logger = logger
         self.time_list = []
+        self.baseline = []
         self.rjs_time_list = []
         self.vol_data_list = []
         self.rjs_vol_data_list = []
@@ -85,6 +87,7 @@ class RealJudgeStatus:
         self.rms_flag = False # res max slope
         self.feature_done = False # use for check feature done
         self.stable_status_flag = False # use for stable status or not stable
+        self.create_baseline_info_flag = False # if called func turn true
         self.humi_list = []
         self.temp_list = []
         self.flow_list = []
@@ -277,11 +280,18 @@ class RealJudgeStatus:
             if i['name'] == 'data':
                 self.append_nessacry_data(i)
                 self.append_rjs_data(i)
+                self.baseline.append(i['channel'][:14])
         if self.status == 5:
             if i['name'] == 'data':
                 self.append_nessacry_data(i)
                 self.append_flag_point(i,'gas_in')
                 self.append_rjs_data(i)
+                if not self.create_baseline_info_flag:
+                    res_baseline = self.transfer_to_resistance(self.baseline)
+                    res_baseline_df = pd.DataFrame(res_baseline)
+                    self.create_baseline_info(res_baseline_df)
+                    # print(self.baseline_info_df)
+                    
         if self.status == 6:
             if i['name'] == 'data':
                 self.append_nessacry_data(i)
@@ -389,7 +399,7 @@ class RealJudgeStatus:
             for cols_dr in MOX_SENSOR__DR_LIST:
                 #--- judge gas in start ---#
                 if rjs_status == 4:
-                    if abs(float(difference_rate_df[index:index+1][cols_dr])) >= self.parameters_dict[cols_dr]['gas_in']['threshold']:
+                    if abs(float(difference_rate_df[index:index+1][cols_dr])) >= (self.parameters_dict[cols_dr]['gas_in']['threshold']*self.baseline_info_df.at[3, cols_dr]):
                         self.sensor_counter_map[cols_dr]['gas_in']['counter']+=1
                     else:
                         self.sensor_counter_map[cols_dr]['gas_in']['counter'] = 0
@@ -399,13 +409,13 @@ class RealJudgeStatus:
                         printf(self.sensor_counter_map[cols_dr]['gas_in']['counter'],0)
                 #--- judge reaction stable start ---#
                 if rjs_status == 5:
-                    if abs(float(difference_rate_df[index:index+1][cols_dr])) <= self.parameters_dict[cols_dr]['reaction_stable']['threshold']:
+                    if abs(float(difference_rate_df[index:index+1][cols_dr])) <= (self.parameters_dict[cols_dr]['reaction_stable']['threshold']*self.baseline_info_df.at[3, cols_dr]):
                         self.sensor_counter_map[cols_dr]['reaction_stable']['counter']+=1
                     else:
                         self.sensor_counter_map[cols_dr]['reaction_stable']['counter'] = 0
                         self.sensor_counter_map[cols_dr]['reaction_stable']['flag'] = 0
                         self.clean_stable_value_each_sensor(index, cols_dr)
-                    if self.sensor_counter_map[cols_dr]['reaction_stable']['counter'] >= self.parameters_dict[cols_dr]['reaction_stable']['conti_times']:
+                    if self.sensor_counter_map[cols_dr]['reaction_stable']['counter'] >= (self.parameters_dict[cols_dr]['reaction_stable']['conti_times']*self.baseline_info_df.at[3, cols_dr]):
                         self.sensor_counter_map[cols_dr]['reaction_stable']['flag'] = 1
                         self.append_stable_value_each_sensor(index, cols_dr)
                 #--- judge recovery start ---#
@@ -668,15 +678,28 @@ class RealJudgeStatus:
         
     def save_threshold_csv(self, difference_rate_df:pd.DataFrame):
         '''
-        save threshold of each time to csv
+        save threshold of each time to excel
         '''
-        
         tmplist = self.filename.split('\\')[1:]
         output_path = CSV_FOLDER
         for i in tmplist:
             output_path = os.path.join(output_path, i)
-        difference_rate_df.to_csv(os.path.join(output_path.replace('ndjson', '.csv')))
-    
+        excel_path = os.path.join(output_path.replace('.ndjson', '.xlsx'))
+        wb1 = openpyxl.Workbook()
+        ws1 = wb1.active
+        rows = dataframe_to_rows(difference_rate_df)
+        for r_idx, row in enumerate(rows, 1):
+            for c_idx, value in enumerate(row, 1):
+                ws1.cell(row=r_idx, column=c_idx, value=value)
+        
+        ws2 = wb1.create_sheet(title='baseline_info') 
+        rows = dataframe_to_rows(self.baseline_info_df)
+        for r_idx, row in enumerate(rows, 1):
+            for c_idx, value in enumerate(row, 1):
+                ws2.cell(row=r_idx, column=c_idx, value=value)
+        
+        wb1.save(excel_path)
+
     def create_esrtsd_timeflag(self, rjs_time_df:pd.DataFrame) -> pd.DataFrame:
         rjs_time_df.insert(0, 'esrtsd_control_status', np.NaN)
         rjs_time_df['esrtsd_control_status'] = rjs_time_df['esrtsd_control_status'].astype(str)
@@ -687,6 +710,24 @@ class RealJudgeStatus:
                     rjs_time_df.at[index,'esrtsd_control_status'] = i
         return rjs_time_df
     
+    def create_baseline_info(self, df):
+        '''
+        including max, min, avg and (max-min)/avg
+        this func need to called at gas in status, because baseline stable was iteration
+        '''
+        
+        baseline_max = df.max().to_numpy()
+        baseline_min = df.min().to_numpy()
+        baseline_avg = df.mean().to_numpy()
+        baseline_factor = (baseline_max - baseline_min)/baseline_avg
+
+        total_ary = [baseline_max, baseline_min, baseline_avg, baseline_factor]
+        baseline_info_df = pd.DataFrame(total_ary, columns= MOX_SENSOR__DR_LIST)
+        description = ["baseline_max", "baseline_min", "baseline_avg", "baseline_factor"]
+        baseline_info_df.insert(0, 'description', description)
+        self.baseline_info_df = baseline_info_df
+        self.create_baseline_info_flag = True
+
     
     def rjs_entrance(self, features_df:pd.DataFrame) -> (pd.DataFrame):
         '''
@@ -700,6 +741,7 @@ class RealJudgeStatus:
         res = self.rolling_calculate(res_data_df)
         difference_rate_df = pd.concat([rjs_time_df, res], axis = 1) # difference_rate_df have time
         self.save_threshold_csv(difference_rate_df)
+        
         features_df = self.judgment_status(difference_rate_df, res_data_df, features_df)
         return features_df
 

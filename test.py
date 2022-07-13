@@ -13,7 +13,7 @@ def load_parameters() -> (dict):
 if __name__ == '__main__':
     final_excel_name = 'statistic_test.xlsx'
     utils.copy_all_folder_path('data')
-    file = r'data\food industrial\apple juice\0516\task__FT4JC60J__2022-05-16T12-33-41.102.ndjson'
+    file = r'data\task__SXT261B60OA__2022-07-01T10-55-42.326.ndjson'
     statistic_df = pd.DataFrame(columns= ['file', 'gas_in', 'reaction_stable', 'recovery'])
     features_df = pd.DataFrame()
     now = datetime.datetime.now()
